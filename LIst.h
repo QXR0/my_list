@@ -2,6 +2,7 @@
 #define _CRT_SECURE_NO_WARNINGS 1;
 #include<iostream>
 #include<algorithm>
+#include<assert.h>
 using namespace std;
 
 namespace my_list
@@ -24,52 +25,46 @@ namespace my_list
 			_pre = _next = nullptr;
 			_data = data;
 		}
-		ListNode(const ListNode<value_type>& l)
-		{
-			_data = l._data;
-			_pre = l._pre;
-			_next = l._next;
-		}
-		ListNode<value_type> &operator=(const ListNode<value_type>& l)
-		{
-			_data = l._data;
-			_pre = l._pre;
-			_next = l._next;
-			return *this;
-		}
 		
 	};
 	//迭代器
-	template<class Inputinterator>
+	template<class Inputinterator,class Ref,class Ptr>
 	class iterator
 	{
 	public:
 		typedef Inputinterator value_type;
-	private:
-		ListNode<Inputinterator>* _cur;
+		typedef ListNode<value_type>*  pNode;
+		typedef iterator<value_type, value_type&, value_type*>  Self;
 	public:
-		iterator( ListNode<Inputinterator>*it = ListNode<Inputinterator>())
+		pNode _cur;
+	public:
+		//构造
+		iterator()= default;
+		iterator(const pNode &p)
 		{
-			_cur = it;
+			_cur = p;
+			
 		}
 		
 		//迭代器 前置++
-		iterator<Inputinterator> operator++()
+		Self& operator++()
 		{
-
+			
 			_cur = _cur->_next;
 			return *this;
 		}
 
 		//后置++
-		iterator<Inputinterator> operator++(int)
+		Self operator++(int)
 		{
-			iterator<Inputinterator> tmp(_cur);
+			Self tmp;
+			tmp._cur = _cur;
 			_cur = _cur->_next;
 			return tmp;
 		}
+
 		//前置--
-		iterator<value_type> operator--()
+		Self& operator--()
 		{
 			_cur = _cur->_pre;
 			return *this;
@@ -77,25 +72,33 @@ namespace my_list
 	 
 		 
 		//后置--
-		iterator<value_type> operator--(int)
+		Self operator--(int)
 		{
-			iterator<Inputinterator> tmp(_cur);
+			Self tmp;
+			tmp._cur = _cur;
 			_cur = _cur->_pre;
 			return tmp;
 		}
 		//!=
-		bool operator!=(iterator<Inputinterator> it)
+		bool operator!=(const Self it)const
 		{
 			return _cur != it._cur;
 		}
-		value_type& operator*()
+
+		//*
+		Ref operator*()
 		{
 			return _cur->_data;
 		}
-		ListNode<value_type>* getnode()
+
+		//->
+		Ptr operator->()
 		{
 			return _cur;
 		}
+
+
+		
 	};
 
 	//链表
@@ -104,28 +107,121 @@ namespace my_list
 	{
 	public:
 		typedef T value_type;
+		typedef iterator<value_type, const value_type&, const value_type*> const_iterator;
+		//typedef iterator<value_type, value_type&, value_type*> reverse_iterator;
+		typedef iterator<value_type, value_type&, value_type*> iterator;
+
+
+		typedef ListNode<value_type> Node;
+		typedef ListNode<value_type>* pNode;
 	public:
+		//构造
 		List()
 		{
-			_head = new ListNode<T>;
+			_head = new Node;
 			_head->_pre = _head->_next = _head;
+			//_head->_data = value();
 		}
-		
-		iterator<value_type> begin()
+		//创建长度为n的链表，且里面的数据都一样
+		List(int n, value_type data = value_type())
 		{
-			return iterator<value_type>(_head->_next);
+			_head = new Node;
+			_head->_pre = _head->_next = _head;
+			while (n--)
+			{
+				push_back(data);
+			}
 		}
 
-		iterator<value_type> end()
+		//用迭代器初始化
+		template<class Inputiterator>
+		List(Inputiterator first, Inputiterator last)
 		{
-			return iterator<value_type>(_head);
+			_head = new Node;
+			_head->_pre = _head->_next = _head;
+			while (first != last)
+			{
+				push_back(*first);
+				first++;
+			}
 		}
+
+		//用链表初始化
+		List( List<T>& l)
+		{
+			_head = new Node;
+			_head->_pre = _head->_next = _head;
+			iterator it = l.begin();
+			while (it!=l.end())
+			{
+				push_back(*it);
+				it++;
+			}
+		}
+		//=重载
+		List<value_type> operator=( List& l)
+		{
+			pNode head = _head->_next;
+			while (head!=_head)
+			{
+				pNode tmp = head->_next;
+				delete head;
+				head = tmp;
+			}
+			_head = new Node;
+			_head->_pre = _head->_next = _head;
+			iterator it = l.begin();
+			while (it != l.end())
+			{
+				push_back(*it);
+				it++;
+			}
+			return *this;
+		}
+
+		//析构
+		~List()
+		{
+			pNode head = _head->_next;
+			while (head != _head)
+			{
+				pNode tmp = head->_next;
+				delete head;
+				head = tmp;
+			}
+			delete _head;
+		}
+
+
+
+		//迭代器
+		iterator begin()
+		{
+			return iterator(_head->_next);
+		}
+
+		const_iterator begin()const
+		{
+			return const_iterator(_head->_next);
+		}
+
+		iterator end()
+		{
+			return iterator(_head);
+		}
+		const_iterator end()const
+		{
+			return const_iterator(_head);
+		}
+
+		
+		
 
 		
 		//尾插
-		void push_back(const value_type& data)
+		void push_back(const value_type& data)const
 		{
-			ListNode<value_type>* newnode=new ListNode<value_type>(data);
+			pNode newnode=new Node(data);
 			newnode->_pre = _head->_pre;
 			newnode->_next = _head;
 			_head->_pre->_next = newnode;
@@ -135,7 +231,8 @@ namespace my_list
 		//尾删
 		void pop_back()
 		{
-			ListNode<value_type>* tail = _head->_pre;
+			assert(_head != _head->_next);
+			pNode tail = _head->_pre;
 			tail->_pre->_next = _head;
 			_head->_pre = tail->_pre;
 			delete tail;
@@ -144,8 +241,8 @@ namespace my_list
 		//头插
 		void push_front(const value_type &data )
 		{
-			ListNode<value_type>* newhead = new ListNode<value_type>(data);
-			ListNode<value_type>* head = _head->_next;
+			pNode newhead = new Node(data);
+			pNode head = _head->_next;
 			newhead->_pre = _head;
 			newhead->_next = head;
 			head->_pre = newhead;
@@ -155,33 +252,60 @@ namespace my_list
 		//头删
 		void pop_front()
 		{
-			ListNode<value_type>* head = _head->_next;
+			pNode head = _head->_next;
 			_head->_next = head->_next;
 			head->_next->_pre = _head;
 			delete head;
 		}
 
-		//特定位置插入
-		void insert(iterator<value_type> pos,const value_type& data)
+		//返回第一个元素
+		value_type& front()
 		{
-			ListNode<value_type>* newnode = new ListNode<value_type>(data);
-			pos.getnode()->_pre->_next = newnode;
-			newnode->_pre = pos.getnode()->_pre;
-			newnode->_next = pos.getnode();
-			pos.getnode()->_pre = newnode;
+			return _head->_next->_data;
+		}
+
+		//返回最后一个元素
+		value_type& back()
+		{
+			return _head->_pre->_data;
+		}
+
+		//特定位置插入
+		void insert(iterator pos,const value_type& data)
+		{
+			pNode newnode = new Node(data);
+			pos._cur->_pre->_next = newnode;
+			newnode->_pre = pos._cur->_pre;
+			newnode->_next = pos._cur;
+			pos._cur->_pre = newnode;
 		}
 		 
 		 
 		 
 		//特定位置删除
-		void erase(iterator<value_type> pos)
+		void erase(iterator pos)
 		{
-			ListNode<value_type>* position = pos.getnode();
+			pNode position = pos._cur;
 			position->_pre->_next = position->_next;
 			position->_next->_pre = position->_pre;
 			delete position;
 		}
 
+
+		//删除数据
+		void clear()
+		{
+			
+			pNode head = _head->_next;
+			while (head != _head)
+			{
+				pNode tmp = head->_next;
+				delete head;
+				head = tmp;
+			}
+			_head->_next = _head->_pre = _head;
+
+		}
 
 		//判空
 		bool empoty()
@@ -192,8 +316,8 @@ namespace my_list
 		//逆序
 		void reverse()
 		{
-			ListNode<value_type>* p1 = begin().getnode();
-			ListNode<value_type>* p2 = end().getnode();
+			pNode p1 = begin()._cur;
+			pNode p2 = end()._cur;
 			p2=p2->_pre;
 			while (p1!=p2&&p1->_next!=p2)
 			{
@@ -208,10 +332,10 @@ namespace my_list
 		}
 		
 		//节点个数
-		size_t size()
+		size_t size()const
 		{
 			int count = 0;
-			iterator<value_type> it = begin();
+			iterator it = begin();
 			while (it != end())
 			{
 				++it;
@@ -223,7 +347,7 @@ namespace my_list
 		//打印
 		void print()
 		{
-			iterator<value_type> it = begin();
+			iterator it = begin();
 			while (it != end())
 			{
 				cout << *it << " ";
@@ -233,9 +357,6 @@ namespace my_list
 		}
 
 	private:
-		ListNode<T>* _head;
+		pNode _head;
 	};
-
-	
-
 }
